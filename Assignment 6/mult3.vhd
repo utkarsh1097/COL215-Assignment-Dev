@@ -17,8 +17,8 @@ ARCHITECTURE adder_logic OF bit_adder IS
 BEGIN
   PROCESS(Ai, Bi, Cin)
     BEGIN
-      Cout <= (Ai XOR Bi XOR Cin);
-      Sout <= ((Ai AND Bi) OR (Bi AND Cin) OR (Cin AND Ai));
+      Sout <= (Ai XOR Bi XOR Cin);
+      Cout <= ((Ai AND Bi) OR (Bi AND Cin) OR (Cin AND Ai));
     END PROCESS;
 END ARCHITECTURE adder_logic;
 
@@ -71,8 +71,8 @@ ENTITY cla_unit IS
 PORT (P: IN std_logic_vector(3 DOWNTO 0);
       G: IN std_logic_vector(3 DOWNTO 0);
       C: IN std_logic;
-      Cout: OUT std_logic_vector(3 DOWNTO 0));
-      Cnext: OUT std_logic;
+      Cout: OUT std_logic_vector(3 DOWNTO 0);
+      Cnext: OUT std_logic);
 END cla_unit;
 
 
@@ -80,7 +80,7 @@ ARCHITECTURE cla_logic OF cla_unit IS
 BEGIN
   Cout(0) <= C;
   Cout(1) <= ((P(0) AND C) OR G(0));
-  Cout(2) <= ((P(1) AND P(0) AND C) OR (P(1) AND G(0)) OR G(2));
+  Cout(2) <= ((P(1) AND P(0) AND C) OR (P(1) AND G(0)) OR G(1));
   Cout(3) <= ((P(2) AND P(1) AND P(0) AND C) OR (P(2) AND P(1) AND G(0)) OR (P(2) AND G(1)) OR G(2));
   Cnext <= ((P(3) AND P(2) AND P(1) AND P(0) AND C) OR (P(3) AND P(2) AND P(1) AND G(0)) OR (P(3) AND P(2) AND G(1)) OR (P(3) AND G(2)) OR G(3));
 END ARCHITECTURE cla_logic;
@@ -94,8 +94,8 @@ USE ieee.std_logic_1164.ALL;
 ENTITY and_or IS
 PORT (A: IN std_logic;
       B: IN std_logic;
-      P: IN std_logic;
-      G: IN std_logic);
+      P: OUT std_logic;
+      G: OUT std_logic);
 END and_or;
 
 
@@ -128,7 +128,7 @@ ARCHITECTURE carry_logic OF carry_look IS
   signal G: std_logic_vector(3 DOWNTO 0);
   signal C: std_logic_vector(3 DOWNTO 0);
   
-  signal dummy1, dummy2, dummy3, dummy0: std_logic; --Not sure if b0...b3 will need a Cout mapped, so using this beforehand to reduce further efforts
+  signal dummy1, dummy2, dummy3, dummy0: std_logic; --Not sure if cout0...cout3 will need a Cout mapped, so using this beforehand to reduce further efforts
 BEGIN
   ao0: ENTITY WORK.and_or(and_or_logic)
        PORT MAP(A => A(0), B => B(0), P => P(0), G => G(0));
@@ -143,17 +143,20 @@ BEGIN
        PORT MAP(P => P, G => G, C => Cin, Cout => C, Cnext => Cout);
   
   b0: ENTITY WORK.bit_adder(adder_logic)
-       PORT MAP(Cin => C(0), A => A(0), B => B(0), S => S(0), Cout => dummy0);
+       PORT MAP(Cin => C(0), Ai => A(0), Bi => B(0), Sout => S(0), Cout => dummy0);
   b1: ENTITY WORK.bit_adder(adder_logic)
-       PORT MAP(Cin => C(1), A => A(1), B => B(1), S => S(1), Cout => dummy1);
+       PORT MAP(Cin => C(1), Ai => A(1), Bi => B(1), Sout => S(1), Cout => dummy1);
   b2: ENTITY WORK.bit_adder(adder_logic)
-       PORT MAP(Cin => C(2), A => A(2), B => B(2), S => S(2), Cout => dummy2);
+       PORT MAP(Cin => C(2), Ai => A(2), Bi => B(2), Sout => S(2), Cout => dummy2);
   b3: ENTITY WORK.bit_adder(adder_logic)
-       PORT MAP(Cin => C(3), A => A(3), B => B(3), S => S(3), Cout => dummy3);
+       PORT MAP(Cin => C(3), Ai => A(3), Bi => B(3), Sout => S(3), Cout => dummy3);
 END ARCHITECTURE carry_logic;
 
 
 --------Multiplier 3--------
+
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
 
 ENTITY mult3 IS
 PORT (A: IN std_logic_vector(7 DOWNTO 0);
@@ -281,7 +284,7 @@ BEGIN
 
   --Now pass through first carry save
   cs1: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp1_1, inp2 => inp1_2, inp3 => inp1_3, out1 => out1_1, out2 => out1_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp1_1, inp2 => inp1_2, inp3 => inp1_3, out1 => out1_1, out2 => out1_2);  --Out1 corresponds to carry
 
   --Initialize inp2_1
   inp2_1 <= out1_1;
@@ -297,7 +300,7 @@ BEGIN
   --Now pass through second carry save
 
   cs2: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp2_1, inp2 => inp2_2, inp3 => inp2_3, out1 => out2_1, out2 => out2_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp2_1, inp2 => inp2_2, inp3 => inp2_3, out1 => out2_1, out2 => out2_2);  --Out1 corresponds to carry
 
   --Initialize inp3_1
   inp3_1 <= out2_1;
@@ -313,7 +316,7 @@ BEGIN
   --Now pass through third carry save
 
   cs3: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp3_1, inp2 => inp3_2, inp3 => inp3_3, out1 => out3_1, out2 => out3_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp3_1, inp2 => inp3_2, inp3 => inp3_3, out1 => out3_1, out2 => out3_2);  --Out1 corresponds to carry
 
   --Initialize inp4_1
   inp4_1 <= out3_1;
@@ -329,7 +332,7 @@ BEGIN
   --Now pass through fourth carry save
 
   cs4: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp4_1, inp2 => inp4_2, inp3 => inp4_3, out1 => out4_1, out2 => out4_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp4_1, inp2 => inp4_2, inp3 => inp4_3, out1 => out4_1, out2 => out4_2);  --Out1 corresponds to carry
 
   --Initialize inp5_1
   inp5_1 <= out4_1;
@@ -345,13 +348,13 @@ BEGIN
   --Now pass through fifth carry save
 
   cs5: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp5_1, inp2 => inp5_2, inp3 => inp5_3, out1 => out5_1, out2 => out5_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp5_1, inp2 => inp5_2, inp3 => inp5_3, out1 => out5_1, out2 => out5_2);  --Out1 corresponds to carry
 
   --Initialize inp6_1
   inp6_1 <= out5_1;
 
   --Initialize inp6_2
-  inp6_2(6 DOWNTO 0) <= out2_5(7 DOWNTO 1);
+  inp6_2(6 DOWNTO 0) <= out5_2(7 DOWNTO 1);
   inp6_2(7) <= p6(7);
 
   --Initialize inp6_3
@@ -361,7 +364,7 @@ BEGIN
   --Now pass through sizth carry save
 
   cs6: ENTITY WORK.carry_save(carry_save_logic)
-       PORT(inp1 => inp6_1, inp2 => inp6_2, inp3 => inp6_3, out1 => out6_1, out2 => out6_2);  --Out1 corresponds to carry
+       PORT MAP(inp1 => inp6_1, inp2 => inp6_2, inp3 => inp6_3, out1 => out6_1, out2 => out6_2);  --Out1 corresponds to carry
 
   --Finally time to use the Carry Lookahead Module
 
@@ -375,10 +378,10 @@ BEGIN
     
 
   cl1: ENTITY WORK.carry_look(carry_logic)
-       PORT(A => inp7_1(3 DOWNTO 0), B => inp7_2(3 DOWNTO 0), Cin => carryover1, S <= out7_1(3 DOWNTO 0), Cout <= carryover2);
+       PORT MAP(A => inp7_1(3 DOWNTO 0), B => inp7_2(3 DOWNTO 0), Cin => carryover1, S => out7_1(3 DOWNTO 0), Cout => carryover2);
 
   cl2: ENTITY WORK.carry_look(carry_logic)
-       PORT(A => inp7_1(7 DOWNTO 4), B => inp7_2(7 DOWNTO 4), Cin => carryover1, S <= out7_1(7 DOWNTO 4), Cout <= S(15)); --Cout is S(15)!!
+       PORT MAP(A => inp7_1(7 DOWNTO 4), B => inp7_2(7 DOWNTO 4), Cin => carryover2, S => out7_1(7 DOWNTO 4), Cout => S(15)); --Cout is S(15)!!
 
   --Now, define the final output. S(15) already defined
 
@@ -390,6 +393,7 @@ BEGIN
   S(5) <= out5_2(0);
   S(6) <= out6_2(0);
   S(10 DOWNTO 7) <= out7_1(3 DOWNTO 0);
-  S(14 DOWNTO 11) <= out7_2(7 DOWNTO 4);
+  S(14 DOWNTO 11) <= out7_1(7 DOWNTO 4);
 
 END ARCHITECTURE mult3_logic; 
+
