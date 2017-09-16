@@ -54,7 +54,7 @@ BEGIN
 			ci => c(0),
 			cf => c(1)
 		);
-		v1: ENTITY WORK                                                                          .full_adder(full_adder_arc) port map(
+		v1: ENTITY WORK.full_adder(full_adder_arc) port map(
 			a => a(1), 
 			b => b(1),
 			s => s(1),
@@ -126,10 +126,7 @@ signal i : integer range 0 to 7 := 0;
 signal j : integer range 0 to 7 := 0;
 --type NIBBLE is array (7 downto 0) of std_ulogic;
 --type MEM is array (0 to 7) of NIBBLE;
-type T_2D is array (7 downto 0, 7 downto 0) of std_logic;
-signal p : T_2D;
-signal dummy : std_logic_vector(8 downto 0);
-signal nextin1: std_logic_vector(7 downto 0);
+signal nextin1, nextin2, nextin3, nextin4, nextin5, nextin6: std_logic_vector(7 downto 0);
 signal p0: std_logic_vector(7 downto 0);
 signal p2: std_logic_vector(7 downto 0);
 signal p3: std_logic_vector(7 downto 0);
@@ -161,7 +158,8 @@ BEGIN
 		product(0) <= p0(0);
 		q0: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
 			--a(0 downto 6) => p(1 downto 7, 0) ,
-			a(0 downto 6) => p0(1 downto 7),
+			a(7) => '0',
+			a(6 downto 0) => p0(7 downto 1),
 			--a(0) => p1(0),
 			--a(1) => p2(0),
 			--a(2) => p3(0),
@@ -181,7 +179,7 @@ BEGIN
 			--b(6) => p6(1),
 			--b(7) => p7(1),
 			
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin1(6 downto 0),
 			s(0) => product(1),
 			cLast => nextin1(7)
 					
@@ -199,12 +197,12 @@ BEGIN
                -- b(5) => p5(2),
                -- b(6) => p6(2),
                -- b(7) => p7(2),
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin2(6 downto 0),
 			s(0) => product(2),
-			cLast => nextin1(7) 
+			cLast => nextin2(7) 
 		);
 		q2: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
+			a => nextin2,
 			--b => p(0 downto 7, 3),
 			b => p3,
                 --b(0) => p0(3),
@@ -215,12 +213,12 @@ BEGIN
                --- b(5) => p5(3),
                 --b(6) => p6(3),
                 --b(7) => p7(3),
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin3(6 downto 0),
 			s(0) => product(3),
-			cLast => nextin1(7) 
+			cLast => nextin3(7) 
 		);
 		q3: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
+			a => nextin3,
 			--b => p(0 downto 7, 4),
 			b => p4,
 			        --        b(0) => p0(4),
@@ -231,12 +229,12 @@ BEGIN
            -- b(5) => p5(4),
             ---b(6) => p6(4),
         --    b(7) => p7(4),
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin4(6 downto 0),
 			s(0) => product(4),
-			cLast => nextin1(7) 
+			cLast => nextin4(7) 
 		);
 		q4: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
+			a => nextin4,
 			--b => p(0 downto 7, 5),
 			b=>p5,
 			--b(0) => p0(5),
@@ -247,12 +245,12 @@ BEGIN
                       --      b(5) => p5(5),
                         --    b(6) => p6(5),
                           --  b(7) => p7(5),
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin5(6 downto 0),
 			s(0) => product(5),
-			cLast => nextin1(7) 
+			cLast => nextin5(7) 
 		);
 		q5: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
+			a => nextin5,
 			--b => p(0 downto 7, 6),
 			b => p6,
 			--b(0) => p0(6),
@@ -263,12 +261,12 @@ BEGIN
                         --    b(5) => p5(6),
                           --  b(6) => p6(6),
                             --b(7) => p7(6),
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin6(6 downto 0),
 			s(0) => product(6),
-			cLast => nextin1(7) 
+			cLast => nextin6(7) 
 		);
 		q6: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
+			a => nextin6,
 			--b => p(0 downto 7, 7),
 			b => p7,
 			--b(0) => p0(7),
@@ -279,7 +277,7 @@ BEGIN
                       --      b(5) => p5(7),
                         --    b(6) => p6(7),
                           --  b(7) => p7(7),
-			s(0 downto 7) => product(7 downto 14),
+			s(7 downto 0) => product(14 downto 7),
 			cLast => product(15) 
 		);
 	
@@ -287,4 +285,5 @@ END ARCHITECTURE;
 		
 		
 		
+
 
