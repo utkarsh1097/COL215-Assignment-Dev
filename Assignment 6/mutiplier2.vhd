@@ -125,7 +125,7 @@ BEGIN
 		w0: ENTITY WORK.full_adder(full_adder_arc) port map(
 			a => a(0),
 			b => b(0),
-			ci => '0',
+			ci => c(0),        --here ci for i=0 won't be '0'
 			s => s(0),
 			cf => carry(0)
 			
@@ -208,14 +208,12 @@ ARCHITECTURE mutiplier2_arc OF mutiplier2 IS
     signal p6: std_logic_vector(7 downto 0);
     signal p7: std_logic_vector(7 downto 0);
     signal p1: std_logic_vector(7 downto 0);
-    signal q : std_logic_vector(7 downto 0);
+    signal q1, q2, q3, q4, q5, q6 : std_logic_vector(7 downto 0);
     signal carry0: std_logic_vector(7 downto 0);
         signal carry2: std_logic_vector(7 downto 0);
         signal carry3: std_logic_vector(7 downto 0);
         signal carry4: std_logic_vector(7 downto 0);
         signal carry5: std_logic_vector(7 downto 0);
-        signal carry6: std_logic_vector(7 downto 0);
-        signal carry7: std_logic_vector(7 downto 0);
         signal carry1: std_logic_vector(7 downto 0);
         
 	COMPONENT carry_save_adder PORT (a, b, c : IN std_logic_vector(7 downto 0);
@@ -243,76 +241,79 @@ BEGIN
 		product(0) <= p0(0);
 		W0: ENTITY WORK.carry_save_adder(carry_save_adder_arc) port map(
 			a(0) => '0' ,
-			a(1 downto 7) => p2(0 downto 6),
-			b => p1(0 downto 7),
-			c(0 downto 6) => p0(1 downto 7),
+			a(7 downto 1) => p2(6 downto 0),
+			b => p1(7 downto 0),
+			c(6 downto 0) => p0(7 downto 1),
 			c(7) => '0',
-			s => q ,
+			s => q1 ,
 			carry => carry0
 		);
-		product(1) <= q(0);
+		product(1) <= q1(0);
 		
 		
-		U1: carry_save_adder PORT MAP(
+		U1: ENTITY WORK.carry_save_adder PORT MAP(
                         a(0) => '0',
-                        a(1 downto 7) => p3(0 downto 6),
+                        a(7 downto 1) => p3(6 downto 0),
                         b(7) => p2(7),
-                        b(0 downto 6) => q(1 downto 7),
+                        b(6 downto 0) => q1(7 downto 1),
                         c => carry0,
-                        s => q ,
+                        s => q2 ,
                         carry => carry1
                     );
-                    product(2) <= q(0);
-        U2: carry_save_adder PORT MAP(
+                    product(2) <= q2(0);
+        U2: ENTITY WORK.carry_save_adder PORT MAP(
                                     a(0) => '0',
-                                    a(1 downto 7) => p4(0 downto 6),
+                                    a(7 downto 1) => p4(6 downto 0),
                                     b(7) => p3(7),
-                                    b(0 downto 6) => q(1 downto 7),
+                                    b(6 downto 0) => q2(7 downto 1),
                                     c => carry1,
-                                    s => q ,
+                                    s => q3 ,
                                     carry => carry2
                                 );
-                                product(3) <= q(0);
-         U3: carry_save_adder PORT MAP(
+                                product(3) <= q3(0);
+         U3: ENTITY WORK.carry_save_adder PORT MAP(
                                     a(0) => '0',
-                                    a(1 downto 7) => p5(0 downto 6),
+                                    a(7 downto 1) => p5(6 downto 0),
                                     b(7) => p4(7),
-                                    b(0 downto 6) => q(1 downto 7),
+                                    b(6 downto 0) => q3(7 downto 1),
                                     c => carry2,
-                                    s => q ,
+                                    s => q4 ,
                                     carry => carry3
                                 );
-                                product(4) <= q(0);
-          U5: carry_save_adder PORT MAP(
+                                product(4) <= q4(0);
+          U4: ENTITY WORK.carry_save_adder PORT MAP(
                                 a(0) => '0',
-                                a(1 downto 7) => p7(0 downto 6),
+                                a(7 downto 1) => p6(6 downto 0),
+                                b(7) => p5(7),
+                                b(6 downto 0) => q4(7 downto 1),
+                                c => carry3,
+                                s => q5 ,
+                                carry => carry4
+                            );
+                            product(5) <= q5(0);                                                                                                               
+
+          U5: ENTITY WORK.carry_save_adder PORT MAP(
+                                a(0) => '0',
+                                a(7 downto 1) => p7(6 downto 0),
                                 b(7) => p6(7),
-                                b(0 downto 6) => q(1 downto 7),
+                                b(6 downto 0) => q5(7 downto 1),
                                 c => carry4,
-                                s => q ,
+                                s => q6 ,
                                 carry => carry5
                             );
-                            product(6) <= q(0);
-          U4: carry_save_adder PORT MAP(
-                                    a(0) => '0',
-                                    a(1 downto 7) => p6(0 downto 6),
-                                    b(7) => p5(7),
-                                    b(0 downto 6) => q(1 downto 7),
-                                    c => carry3,
-                                    s => q ,
-                                    carry => carry4
-                                );
-                                product(5) <= q(0);                                                                                                               
+                            product(6) <= q6(0);
 
 		-------- -----------
 		
 		W6: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a(0 downto 6) => q(1 downto 7), 
+			a(6 downto 0) => q6(7 downto 1), 
+			a(7) => p7(7),
 			b => carry5,
-			s => product(7 downto 14),
+			s => product(14 downto 7),
 			cLast => product(15)
 		);
 	
 END ARCHITECTURE;	
 
 	
+
