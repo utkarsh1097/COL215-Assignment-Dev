@@ -142,14 +142,14 @@ BEGIN
 	   PROCESS(in1, in2)
 	       BEGIN
 		for i in 0 to 7 loop
-			p0(i) <= in1(i) and in2(0);
-			p1(i) <= in1(i) and in2(1);
-			p2(i) <= in1(i) and in2(2);
-			p3(i) <= in1(i) and in2(3);
-			p4(i) <= in1(i) and in2(4);
-			p5(i) <= in1(i) and in2(5);
-			p6(i) <= in1(i) and in2(6);
-			p7(i) <= in1(i) and in2(7);
+			p0(i) <= in1(0) and in2(i);
+			p1(i) <= in1(1) and in2(i);
+			p2(i) <= in1(2) and in2(i);
+			p3(i) <= in1(3) and in2(i);
+			p4(i) <= in1(4) and in2(i);
+			p5(i) <= in1(5) and in2(i);
+			p6(i) <= in1(6) and in2(i);
+			p7(i) <= in1(7) and in2(i);
 			
 			
 		end loop;
@@ -1010,6 +1010,8 @@ END ENTITY;
 ARCHITECTURE ssd_final_arc OF ssd_final IS
 signal finClk: std_logic;
 signal dumAnode: std_logic_vector(3 downto 0);
+SIGNAL bcd: std_logic_vector(3 downto 0);
+signal dummy: std_logic;
 BEGIN
 	a1: ENTITY WORK.clock(clock_arc) port map(
 		clk => clk,
@@ -1020,12 +1022,63 @@ BEGIN
 		clk => finClk,
 		anode => dumAnode		
 	);
-	anode <= dumAnode; 
-	a3: ENTITY WORK.ssd(ssd_arc) port map(
-		d_o => product,
-		anode => dumAnode,
-		cathode => cathode
-	);
+			anode <= dumAnode; 
+	 PROCESS(product, dumAnode)
+          BEGIN
+            IF dumAnode = "1110" THEN bcd<= product(3 downto 0);
+            ELSIF dumAnode = "1101" THEN bcd<= product(7 downto 4);
+            ELSIF dumAnode = "1011" THEN bcd<= product(11 downto 8);
+            ELSIF dumAnode = "0111" THEN bcd<= product(15 downto 12);
+            ELSE dummy <= '0';
+            END IF;
+       END PROCESS;    
+           
+           process(bcd)
+             BEGIN
+               IF bcd = "0000" THEN cathode <="1000000";  
+               ELSIF bcd = "0001" THEN cathode <="1111001";  
+               ELSIF bcd = "0010" THEN cathode <="0100100";  
+               ELSIF bcd = "0011" THEN cathode <="0110000";  
+               ELSIF bcd = "0100" THEN cathode <="0011001";  
+               ELSIF bcd = "0101" THEN cathode <="0010010";  
+               ELSIF bcd = "0110" THEN cathode <="0000010";  
+               ELSIF bcd = "0111" THEN cathode <="1111000";  
+               ELSIF bcd = "1000" THEN cathode <="0000000";  
+               ELSIF bcd = "1001" THEN cathode <="0010000";
+               ELSIF bcd = "1010" THEN cathode <="0001000";  
+               ELSIF bcd = "1011" THEN cathode <="0000011";  
+               ELSIF bcd = "1100" THEN cathode <="1000110";  
+               ELSIF bcd = "1101" THEN cathode <="0100001";  
+               ELSIF bcd = "1110" THEN cathode <="0000110";
+               ELSIF bcd = "1111" THEN cathode <="0001110";
+               ELSE dummy <= '0';
+               END IF;  
+          end process;
+END ARCHITECTURE;
+
+-----------------------MULTIPLEXOR------------------------
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+
+ENTITY multiplexor IS
+PORT(tmultiplier_select: IN std_logic_vector(1 DOWNTO 0);
+     tproduct1, tproduct2, tproduct3: IN std_logic_vector(15 DOWNTO 0);
+     tdumProduct: OUT std_logic_vector(15 DOWNTO 0));
+END multiplexor;
+
+
+ARCHITECTURE multi_logic OF multiplexor IS
+BEGIN
+   PROCESS(tmultiplier_select, tproduct1, tproduct2, tproduct3) 
+   BEGIN                        
+       if tmultiplier_select = "00" then 
+           tdumProduct <= tproduct1;
+       elsif tmultiplier_select = "01" then 
+           tdumProduct <= tproduct2;
+       elsif tmultiplier_select = "10" then 
+               tdumProduct <= tproduct3;               
+       end if;     
+    END PROCESS;
 END ARCHITECTURE;
 
 ------------------------FINAL----------------------------------------------------------------------------------------------------------------------------
@@ -1046,7 +1099,7 @@ PORT(
 );
 END ENTITY;
 
-ARCHITECTURE lab6_logic OF lab6_multiplier IS
+ARCHITECTURE Behavorial OF lab6_multiplier IS
 signal product1 : std_logic_vector(15 downto 0);
 signal product2 : std_logic_vector(15 downto 0);
 signal product3 : std_logic_vector(15 downto 0);
@@ -1068,30 +1121,26 @@ BEGIN
            A => in1,
            B => in2,
            S => product3
-           ); 
-    PROCESS(multiplier_select) 
-    BEGIN                    	
-        if multiplier_select = "00" then 
-            product <= product1;
-            dumProduct <= product1;
-        elsif multiplier_select = "01" then 
-            product <= product2;
-            dumProduct <= product2;
-        elsif multiplier_select = "10" then 
-                product <= product3;
-                dumProduct <= product3;               
-        end if;     
-     END PROCESS;
-     b: ENTITY WORK.ssd_final(ssd_final_arc) port map(
-        clk => clk,
-         display_button => display_button,
-         product => dumProduct,
-         anode => anode,
-         cathode => cathode 
-     );
+           );   
      
-         
-END ARCHITECTURE;
+      sel: ENTITY WORK.multiplexor(multi_logic) port map(
+           tmultiplier_select => multiplier_select,
+           tproduct1 => product1,
+           tproduct2 => product2,
+           tproduct3 => product3,
+           tdumProduct => dumProduct
+           );     
+
+      b: ENTITY WORK.ssd_final(ssd_final_arc) port map(
+             clk => clk,
+             display_button => display_button,
+             product => dumProduct,
+             anode => anode,
+             cathode => cathode);
+        
+      product <= dumProduct;  
+      
+END Behavorial;
 		
 		
 
