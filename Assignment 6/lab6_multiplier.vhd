@@ -124,11 +124,9 @@ END ENTITY;
 ARCHITECTURE mult1_arc OF mult1 IS
 signal i : integer range 0 to 7 := 0;
 signal j : integer range 0 to 7 := 0;
-
-type T_2D is array (7 downto 0, 7 downto 0) of std_logic;
-signal p : T_2D;
-signal dummy : std_logic_vector(8 downto 0);
-signal nextin1: std_logic_vector(7 downto 0);
+--type NIBBLE is array (7 downto 0) of std_ulogic;
+--type MEM is array (0 to 7) of NIBBLE;
+signal nextin1, nextin2, nextin3, nextin4, nextin5, nextin6: std_logic_vector(7 downto 0);
 signal p0: std_logic_vector(7 downto 0);
 signal p2: std_logic_vector(7 downto 0);
 signal p3: std_logic_vector(7 downto 0);
@@ -159,184 +157,66 @@ BEGIN
 
 		product(0) <= p0(0);
 		q0: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			
-			a(0 downto 6) => p0(1 downto 7),
-			
+			a(7) => '0',
+			a(6 downto 0) => p0(7 downto 1),
 			b => p1,
-			
-			
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin1(6 downto 0),
 			s(0) => product(1),
-			cLast => nextin1(7)
-					
+			cLast => nextin1(7)		
 		);
 		q1: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
 			a => nextin1,
-			
-			
-			    b=>p2,
-                
-			s(1 downto 7) => nextin1(0 downto 6),
+			b=>p2,
+			s(7 downto 1) => nextin2(6 downto 0),
 			s(0) => product(2),
-			cLast => nextin1(7) 
+			cLast => nextin2(7) 
 		);
 		q2: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
-			
+			a => nextin2,
 			b => p3,
-                
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin3(6 downto 0),
 			s(0) => product(3),
-			cLast => nextin1(7) 
+			cLast => nextin3(7) 
 		);
 		q3: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
-			
+			a => nextin3,
 			b => p4,
-		
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin4(6 downto 0),
 			s(0) => product(4),
-			cLast => nextin1(7) 
+			cLast => nextin4(7) 
 		);
 		q4: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
-			
+			a => nextin4,
 			b=>p5,
-			
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin5(6 downto 0),
 			s(0) => product(5),
-			cLast => nextin1(7) 
+			cLast => nextin5(7) 
 		);
 		q5: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
-			
+			a => nextin5,
 			b => p6,
-			
-			s(1 downto 7) => nextin1(0 downto 6),
+			s(7 downto 1) => nextin6(6 downto 0),
 			s(0) => product(6),
-			cLast => nextin1(7) 
+			cLast => nextin6(7) 
 		);
 		q6: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a => nextin1,
-			
+			a => nextin6,
 			b => p7,
-			
-			s(0 downto 7) => product(7 downto 14),
+			s(7 downto 0) => product(14 downto 7),
 			cLast => product(15) 
 		);
 	
 END ARCHITECTURE;	
+		
+		
+		
+
+		
 
 --------------MULT2-----------------------------------------
 ----------------------------------------------------------
 
-LIBRARY ieee;
-USE ieee.std_logic_1164.ALL;
-
----------FULL ADDER----------
-
-ENTITY full_adder IS
-PORT(
-	a: IN std_logic;
-	b: IN std_logic;
-	s: OUT std_logic;
-	ci: IN std_logic;
-	cf: OUT std_logic	
-);
-END ENTITY;
-
-ARCHITECTURE full_adder_arc OF full_adder IS
-BEGIN
-PROCESS (a, b, ci)
-	BEGIN 
-		s <= a xor b xor ci;
-		cf <= (ci and (b or a)) or (b and a);
-	END PROCESS;
-END ARCHITECTURE;
-
----------- FULL ADDER ----------
-LIBRARY ieee;
-USE ieee.std_logic_1164.ALL;
-
-ENTITY carry_propagate_adder IS
-PORT(
-	a: IN std_logic_vector(7 downto 0);
-	b: IN std_logic_vector(7 downto 0);
-	s: OUT std_logic_vector(7 downto 0);
-	cLast: OUT std_logic
-	--carry: out std_logic_vector(8 downto 0)
-);
-END ENTITY;
-
-ARCHITECTURE carry_propagate_adder_arc OF carry_propagate_adder IS
-signal c: std_logic_vector(8 downto 0);
-BEGIN
-	
-	
-		c(0) <= '0';
-		
-		v0: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(0),
-			b => b(0),
-			s => s(0),
-			ci => c(0),
-			cf => c(1)
-		);
-		v1: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(1),
-			b => b(1),
-			s => s(1),
-			ci => c(1),
-			cf => c(2)
-		);
-		
-		v2: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(2),
-			b => b(2),
-			s => s(2),
-			ci => c(2),
-			cf => c(3)
-		);
-		v3: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(3),
-			b => b(3),
-			s => s(3),
-			ci => c(3),
-			cf => c(4)
-		);
-		v4: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(4),
-			b => b(4),
-			s => s(4),
-			ci => c(4),
-			cf => c(5)
-		);
-		v5: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(5),
-			b => b(5),
-			s => s(5),
-			ci => c(5),
-			cf => c(6)
-		);
-		v6: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(6),
-			b => b(6),
-			s => s(6),
-			ci => c(6),
-			cf => c(7)
-		);
-		v7: ENTITY WORK.full_adder(full_adder_arc) port map(
-			a => a(7),
-			b => b(7),
-			s => s(7),
-			ci => c(7),
-			cf => c(8)
-		);
-		cLast <= c(8);
-		--carry <= c;		
-	
-	
-END ARCHITECTURE;
+---Full adder and carry  propagate adder covered before
 
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
@@ -357,7 +237,7 @@ BEGIN
 		w0: ENTITY WORK.full_adder(full_adder_arc) port map(
 			a => a(0),
 			b => b(0),
-			ci => '0',
+			ci => c(0),        --here ci for i=0 won't be '0'
 			s => s(0),
 			cf => carry(0)
 			
@@ -440,14 +320,12 @@ ARCHITECTURE mult2_arc OF mult2 IS
     signal p6: std_logic_vector(7 downto 0);
     signal p7: std_logic_vector(7 downto 0);
     signal p1: std_logic_vector(7 downto 0);
-    signal q : std_logic_vector(7 downto 0);
+    signal q1, q2, q3, q4, q5, q6 : std_logic_vector(7 downto 0);
     signal carry0: std_logic_vector(7 downto 0);
         signal carry2: std_logic_vector(7 downto 0);
         signal carry3: std_logic_vector(7 downto 0);
         signal carry4: std_logic_vector(7 downto 0);
         signal carry5: std_logic_vector(7 downto 0);
-        signal carry6: std_logic_vector(7 downto 0);
-        signal carry7: std_logic_vector(7 downto 0);
         signal carry1: std_logic_vector(7 downto 0);
         
 	COMPONENT carry_save_adder PORT (a, b, c : IN std_logic_vector(7 downto 0);
@@ -475,77 +353,81 @@ BEGIN
 		product(0) <= p0(0);
 		W0: ENTITY WORK.carry_save_adder(carry_save_adder_arc) port map(
 			a(0) => '0' ,
-			a(1 downto 7) => p2(0 downto 6),
-			b => p1(0 downto 7),
-			c(0 downto 6) => p0(1 downto 7),
+			a(7 downto 1) => p2(6 downto 0),
+			b => p1(7 downto 0),
+			c(6 downto 0) => p0(7 downto 1),
 			c(7) => '0',
-			s => q ,
+			s => q1 ,
 			carry => carry0
 		);
-		product(1) <= q(0);
+		product(1) <= q1(0);
 		
 		
-		U1: carry_save_adder PORT MAP(
+		U1: ENTITY WORK.carry_save_adder PORT MAP(
                         a(0) => '0',
-                        a(1 downto 7) => p3(0 downto 6),
+                        a(7 downto 1) => p3(6 downto 0),
                         b(7) => p2(7),
-                        b(0 downto 6) => q(1 downto 7),
+                        b(6 downto 0) => q1(7 downto 1),
                         c => carry0,
-                        s => q ,
+                        s => q2 ,
                         carry => carry1
                     );
-                    product(2) <= q(0);
-        U2: carry_save_adder PORT MAP(
+                    product(2) <= q2(0);
+        U2: ENTITY WORK.carry_save_adder PORT MAP(
                                     a(0) => '0',
-                                    a(1 downto 7) => p4(0 downto 6),
+                                    a(7 downto 1) => p4(6 downto 0),
                                     b(7) => p3(7),
-                                    b(0 downto 6) => q(1 downto 7),
+                                    b(6 downto 0) => q2(7 downto 1),
                                     c => carry1,
-                                    s => q ,
+                                    s => q3 ,
                                     carry => carry2
                                 );
-                                product(3) <= q(0);
-         U3: carry_save_adder PORT MAP(
-                                            a(0) => '0',
-                                            a(1 downto 7) => p5(0 downto 6),
-                                            b(7) => p4(7),
-                                            b(0 downto 6) => q(1 downto 7),
-                                            c => carry2,
-                                            s => q ,
-                                            carry => carry3
-                                        );
-                                        product(4) <= q(0);
-          U5: carry_save_adder PORT MAP(
+                                product(3) <= q3(0);
+         U3: ENTITY WORK.carry_save_adder PORT MAP(
+                                    a(0) => '0',
+                                    a(7 downto 1) => p5(6 downto 0),
+                                    b(7) => p4(7),
+                                    b(6 downto 0) => q3(7 downto 1),
+                                    c => carry2,
+                                    s => q4 ,
+                                    carry => carry3
+                                );
+                                product(4) <= q4(0);
+          U4: ENTITY WORK.carry_save_adder PORT MAP(
                                 a(0) => '0',
-                                a(1 downto 7) => p7(0 downto 6),
+                                a(7 downto 1) => p6(6 downto 0),
+                                b(7) => p5(7),
+                                b(6 downto 0) => q4(7 downto 1),
+                                c => carry3,
+                                s => q5 ,
+                                carry => carry4
+                            );
+                            product(5) <= q5(0);                                                                                                               
+
+          U5: ENTITY WORK.carry_save_adder PORT MAP(
+                                a(0) => '0',
+                                a(7 downto 1) => p7(6 downto 0),
                                 b(7) => p6(7),
-                                b(0 downto 6) => q(1 downto 7),
+                                b(6 downto 0) => q5(7 downto 1),
                                 c => carry4,
-                                s => q ,
+                                s => q6 ,
                                 carry => carry5
                             );
-                            product(6) <= q(0);
-          U4: carry_save_adder PORT MAP(
-                                    a(0) => '0',
-                                    a(1 downto 7) => p6(0 downto 6),
-                                    b(7) => p5(7),
-                                    b(0 downto 6) => q(1 downto 7),
-                                    c => carry3,
-                                    s => q ,
-                                    carry => carry4
-                                );
-                                product(5) <= q(0);                                                                                                               
+                            product(6) <= q6(0);
 
 		-------- -----------
 		
 		W6: ENTITY WORK.carry_propagate_adder(carry_propagate_adder_arc) port map(
-			a(0 downto 6) => q(1 downto 7), 
+			a(6 downto 0) => q6(7 downto 1), 
+			a(7) => p7(7),
 			b => carry5,
-			s => product(7 downto 14),
+			s => product(14 downto 7),
 			cLast => product(15)
 		);
 	
 END ARCHITECTURE;	
+
+	
 
 ----------------------------------MULT3----------------------------------------------------------
 --------------------------------------------------------------------------------------------------
@@ -1031,7 +913,7 @@ PORT(
 END ENTITY;	
 
 ARCHITECTURE anode_gen_arc OF anode_gen IS
-signal danode : std_logic_vector;
+signal danode : std_logic_vector(3 downto 0);
 
 BEGIN
 PROCESS(clk)
@@ -1073,32 +955,38 @@ END ssd;
 
 ARCHITECTURE ssd_arc OF ssd IS
 	SIGNAL bcd: std_logic_vector(3 downto 0);
+	signal dummy: std_logic;
 	begin
 	   PROCESS(d_o)
 	   BEGIN
-		CASE anode Is
-			WHEN "1110" =>bcd<= d_o(3 downto 0);
-			WHEN "1101" =>bcd<= d_o(7 downto 4);
-			WHEN "1011" =>bcd<= d_o(11 downto 8);
-			WHEN "0111" =>bcd<= d_o(15 downto 12);
-		END CASE;
+         IF anode = "1110" THEN bcd<= d_o(3 downto 0);
+         ELSIF anode = "1101" THEN bcd<= d_o(7 downto 4);
+         ELSIF anode = "1011" THEN bcd<= d_o(11 downto 8);
+         ELSIF anode = "0111" THEN bcd<= d_o(15 downto 12);
+         ELSE dummy <= '0';
+         END IF;
 	END PROCESS;	
 		
 		process(bcd)
-			BEGIN
-			 CASE bcd IS
-				WHEN "0000"=> cathode <="0000001";  
-				WHEN "0001"=> cathode <="1001111";  
-				WHEN "0010"=> cathode <="0010010";  
-				WHEN "0011"=> cathode <="0000110";  
-				WHEN "0100"=> cathode <="1001100";  
-				WHEN "0101"=> cathode <="0100100";  
-				WHEN "0110"=> cathode <="0100000";  
-				WHEN "0111"=> cathode <="0001111";  
-				WHEN "1000"=> cathode <="0000000";  
-				WHEN "1001"=> cathode <="0000100";  
-				--WHEN others=> cathode <=; 
-			 end case;
+          BEGIN
+            IF bcd = "0000" THEN cathode <="1000000";  
+            ELSIF bcd = "0001" THEN cathode <="1111001";  
+            ELSIF bcd = "0010" THEN cathode <="0100100";  
+            ELSIF bcd = "0011" THEN cathode <="0110000";  
+            ELSIF bcd = "0100" THEN cathode <="0011001";  
+            ELSIF bcd = "0101" THEN cathode <="0010010";  
+            ELSIF bcd = "0110" THEN cathode <="0000010";  
+            ELSIF bcd = "0111" THEN cathode <="1111000";  
+            ELSIF bcd = "1000" THEN cathode <="0000000";  
+            ELSIF bcd = "1001" THEN cathode <="0010000";
+            ELSIF bcd = "1010" THEN cathode <="0001000";  
+            ELSIF bcd = "1011" THEN cathode <="0000011";  
+            ELSIF bcd = "1100" THEN cathode <="1000110";  
+            ELSIF bcd = "1101" THEN cathode <="0100001";  
+            ELSIF bcd = "1110" THEN cathode <="0000110";
+            ELSIF bcd = "1111" THEN cathode <="0001110";
+            ELSE dummy <= '0';
+            END IF;  
 	   end process;
 END ssd_arc;
 
@@ -1145,7 +1033,7 @@ END ARCHITECTURE;
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 
-ENTITY lab6 IS
+ENTITY lab6_multiplier IS
 PORT(
     clk: IN std_logic;
     in1: IN std_logic_vector(7 downto 0);
@@ -1153,23 +1041,25 @@ PORT(
     display_button: IN std_logic;
     multiplier_select :IN std_logic_vector(1 downto 0);
     anode: OUT  std_logic_vector(3 downto 0);
-    cathode: OUT std_logic_vector(3 downto 0);
+    cathode: OUT std_logic_vector(6 downto 0);
     product: OUT std_logic_vector(15 downto 0)
 );
 END ENTITY;
 
-ARCHITECTURE lab6_logic OF lab6 IS
+ARCHITECTURE lab6_logic OF lab6_multiplier IS
 signal product1 : std_logic_vector(15 downto 0);
 signal product2 : std_logic_vector(15 downto 0);
 signal product3 : std_logic_vector(15 downto 0);
 signal dumProduct : std_logic_vector(15 downto 0);
 BEGIN
-	m1: ENTITY WORK.mult1(mult1_arc) port map(
-            in1 => in1,
-            in2 => in2,
-            product => product1
-        );
-     m2: ENTITY WORK.mult2(mult1_arc) port map(
+
+     m1: ENTITY WORK.mult1(mult1_arc) port map(
+         in1 => in1,
+         in2 => in2,
+         product => product1
+     );
+
+     m2: ENTITY WORK.mult2(mult2_arc) port map(
             in1 => in1,
             in2 => in2,
             product => product2
