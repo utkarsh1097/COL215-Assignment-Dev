@@ -834,37 +834,30 @@ END ARCHITECTURE mult3_logic;
 
 ---------------------------------------------------------------SLOW CLOCK--------------------------------------------
 -----------------------------------------------------------------------------------------------------------------
+	
 
-LIBRARY ieee;
-USE ieee.std_logic_1164.ALL;
-use IEEE.NUMERIC_STD.all;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.std_logic_arith.all;
+use ieee.numeric_std.all;
 
 ENTITY slowClock IS
 PORT(
     clk_100Mhz : in  std_logic;
-    --rst       : in  std_logic;
     clk_2KHz   : out std_logic
 );
 END ENTITY;	
 ARCHITECTURE slowClock_arc OF slowClock IS
-    signal prescaler : unsigned(23 downto 0);
-    signal clk_2KHz_i : std_logic;
+    signal prescaler : std_logic_vector(18 downto 0) := "0000000000000000000";
 BEGIN
-    gen_clk : process (clk_100Mhz)
-  begin  -- process gen_clk
-    --if rst = '1' then
-      --clk_2Hz_i   <= '0';
-      --prescaler   <= (others => '0');
+    process(clk_100Mhz)
+    begin
     if rising_edge(clk_100Mhz) then   -- rising clock edge
-      if prescaler = 25000 then     -- 12 500 000 in hex
-        prescaler   <= (others => '0');
-        clk_2KHz_i   <= not clk_2KHz_i;
-      else
-        prescaler <= prescaler + 1;
-      end if;
+      prescaler <= prescaler + 1;
     end if;
-  end process gen_clk;
-  clk_2KHz <= clk_2KHz_i;
+      clk_2KHz <= prescaler(18);
+  end process;
 END ARCHITECTURE;
 
 -------------------------------------------------------------------------FINAL CLOCK-----------------------------------------------
@@ -890,12 +883,13 @@ BEGIN
     ); 
     PROCESS(clk, pushbutton)
     BEGIN
-        if(pushbutton <= '1') then finclk <= clk;
-        elsif(pushbutton <= '0') then finclk <= slowClock;
+        if(pushbutton = '1') then finclk <= clk;
+        elsif(pushbutton = '0') then finclk <= slowClock;
         end if;
             
     END PROCESS;    
 END ARCHITECTURE;
+
 
 -------------------------------------------ANODE GENERATOR -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------
@@ -919,19 +913,21 @@ BEGIN
 PROCESS(clk)
     variable j : integer range 0 to 7 := 0;
     BEGIN
-    if rising_edge(clk) and j=0 then
-        danode <= "1110";
-        j := 1;   
-    elsif rising_edge(clk) and j=1 then
-            danode <= "1101";
-            j := 2;
-     elsif rising_edge(clk) and j=2 then
-            danode <= "1101";
-            j := 3;
-      elsif rising_edge(clk) and j=3 then
-            danode <= "1101";
-            j := 1;                         
-      end if;
+      if rising_edge(clk) then
+        if j=0 then
+            danode <= "1110";
+            j := 1;   
+        elsif j=1 then
+                danode <= "1101";
+                j := 2;
+         elsif j=2 then
+                danode <= "1011";
+                j := 3;
+          elsif j=3 then
+                danode <= "0111";
+                j := 0;                         
+        end if;
+      end if;  
     END PROCESS;
     anode <= danode;
 END Architecture;
@@ -1141,7 +1137,3 @@ BEGIN
       product <= dumProduct;  
       
 END Behavorial;
-		
-		
-
-
