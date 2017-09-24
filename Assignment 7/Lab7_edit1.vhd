@@ -193,7 +193,7 @@ ARCHITECTURE dflipflop OF dff IS
 BEGIN
   PROCESS(clk)
   BEGIN
-    IF rising_edge(clk) THEN
+    IF clk='1' THEN
       Q <= D;
     END IF;
   END PROCESS;
@@ -500,13 +500,11 @@ ARCHITECTURE lab7_logic OF lab7_divider IS
   signal Q_out_div: std_logic_vector(7 DOWNTO 0);
   signal D_out_div: std_logic_vector(14 DOWNTO 0);
   signal R_out_div: std_logic_vector(15 DOWNTO 0);
-  signal load, sub: std_logic;
+  shared variable load : std_logic := '0';
+  shared variable sub : std_logic := '0';
 BEGIN
-  
   output_valid <= '0';
   toutput_valid <= '0';
-  load <= '0';
-  sub <= '0';
   PROCESS(dividend)
   BEGIN
     IF dividend(7) = '1' THEN
@@ -542,8 +540,8 @@ BEGIN
   PROCESS(load_inputs, valid)
   BEGIN
     IF valid = '1' and load_inputs = '1' THEN 
-      load <= '1';
-      sub <= '0';
+      load := '1';
+      sub := '0';
     END IF;
   END PROCESS;
 
@@ -551,20 +549,20 @@ BEGIN
   PROCESS(clk)
   BEGIN
     IF load = '1' THEN
-      IF rising_edge(clk) THEN
+     IF rising_edge(clk) THEN
         R_in_reg(7 DOWNTO 0) <= A;
         R_in_reg(15 DOWNTO 8) <= "00000000";
         D_in_reg(14 DOWNTO 7) <= B;
         D_in_reg(6 DOWNTO 0) <= "0000000";
         Q_in_reg <= "00000000";
-        load <= '0';
-        sub <= '1';
+        load := '0';
+        sub := '1';
       END IF;
     ELSIF sub = '1' THEN
       IF rising_edge(clk) THEN
         IF (unsigned(D_out_div) < unsigned(B)) THEN
 	  toutput_valid <= '1'; 
-          sub <= '0';
+          sub := '0';
         ELSE
           Q_in_reg <= Q_out_div;
           D_in_reg <= D_out_div;
