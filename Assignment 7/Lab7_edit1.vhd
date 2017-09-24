@@ -134,7 +134,7 @@ BEGIN
 		clk => finClk,
 		anode => dumAnode		
 	);
-	anode <= dumAnode
+	anode <= dumAnode;
         --PROCESS(dumAnode)
        -- BEGIN
 	  --IF valid = '1' THEN anode <= dumAnode;
@@ -558,8 +558,10 @@ BEGIN
 
   PROCESS(D_out_div, clk)
   BEGIN
-    IF unsigned(D_out_div) < unsigned(B) and rising_edge(clk) THEN
-      toutput_valid <= '1';
+    IF (unsigned(D_out_div) < unsigned(B)) THEN
+        IF rising_edge(clk) THEN
+            toutput_valid <= '1';
+        END IF;    
     ELSE
       Q_in_reg <= Q_out_div;
       D_in_reg <= D_out_div;
