@@ -537,9 +537,9 @@ BEGIN
      PORT MAP(divisor => divisor, valid => valid);
   input_valid <= valid;
 
-  PROCESS(load_inputs, valid, clk)
+  PROCESS(load_inputs, valid)
   BEGIN
-    IF valid = '1' and load_inputs = '1' and rising_edge(clk) THEN 
+    IF valid = '1' and load_inputs = '1' THEN 
       Q_in_reg <= "00000000";
       R_in_reg(7 DOWNTO 0) <= A;
       R_in_reg(15 DOWNTO 8) <= "00000000";
