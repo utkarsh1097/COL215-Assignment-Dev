@@ -444,9 +444,9 @@ END division;
 
 ARCHITECTURE div_logic OF division IS
 BEGIN
-  PROCESS(clk)
+  PROCESS(Din, Rin, Qin)
   BEGIN
-    IF rising_edge(clk) and unsigned(B)<=unsigned(Din) THEN
+    IF unsigned(B)<=unsigned(Din) THEN
       IF unsigned(Din) <= unsigned(Rin) THEN
         Rout <= std_logic_vector(unsigned(Rin) - unsigned(Din));
         Qout <= std_logic_vector(unsigned((Qin+Qin) + 1));
@@ -551,23 +551,27 @@ BEGIN
   PROCESS(clk)
   BEGIN
     IF load = '1' THEN
-      R_in_reg(7 DOWNTO 0) <= A;
-      R_in_reg(15 DOWNTO 8) <= "00000000";
-      D_in_reg(14 DOWNTO 7) <= B;
-      D_in_reg(6 DOWNTO 0) <= "0000000";
-      Q_in_reg <= "00000000";
-      load <= '0';
-      sub <= '1';
-    ELSIF sub = '1' THEN
-      IF (unsigned(D_out_div) < unsigned(B)) THEN
-	toutput_valid <= '1'; 
-        sub <= '0';
-      ELSE
-        Q_in_reg <= Q_out_div;
-        D_in_reg <= D_out_div;
-        R_in_reg <= R_out_div;
+      IF rising_edge(clk) THEN
+        R_in_reg(7 DOWNTO 0) <= A;
+        R_in_reg(15 DOWNTO 8) <= "00000000";
+        D_in_reg(14 DOWNTO 7) <= B;
+        D_in_reg(6 DOWNTO 0) <= "0000000";
+        Q_in_reg <= "00000000";
+        load <= '0';
+        sub <= '1';
       END IF;
-    END IF;
+    ELSIF sub = '1' THEN
+      IF rising_edge(clk) THEN
+        IF (unsigned(D_out_div) < unsigned(B)) THEN
+	  toutput_valid <= '1'; 
+          sub <= '0';
+        ELSE
+          Q_in_reg <= Q_out_div;
+          D_in_reg <= D_out_div;
+          R_in_reg <= R_out_div;
+        END IF;
+      END IF;
+     END IF;
   END PROCESS;
  
 
