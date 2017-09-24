@@ -485,7 +485,7 @@ END lab7_divider;
 ARCHITECTURE lab7_logic OF lab7_divider IS
   signal valid: std_logic;
   --signal slow_clk: std_logic;
-  signal toutput_valid: std_logic;
+  shared variable toutput_valid: std_logic := '0';
   signal divisor_sign, dividend_sign: std_logic;     --0 means positive, 1 means negative
   signal A, B: std_logic_vector(7 DOWNTO 0);
   shared variable tempA, tempB: std_logic_vector(7 DOWNTO 0);
@@ -503,8 +503,6 @@ ARCHITECTURE lab7_logic OF lab7_divider IS
   shared variable load : std_logic := '0';
   shared variable sub : std_logic := '0';
 BEGIN
-  output_valid <= '0';
-  toutput_valid <= '0';
   PROCESS(dividend)
   BEGIN
     IF dividend(7) = '1' THEN
@@ -561,7 +559,7 @@ BEGIN
     ELSIF sub = '1' THEN
       IF rising_edge(clk) THEN
         IF (unsigned(D_out_div) < unsigned(B)) THEN
-	  toutput_valid <= '1'; 
+	  toutput_valid := '1'; 
           sub := '0';
         ELSE
           Q_in_reg <= Q_out_div;
@@ -579,11 +577,11 @@ BEGIN
   d: ENTITY WORK.division(div_logic)
      PORT MAP(Qin => Q_out_reg, Rin => R_out_reg, Din => D_out_reg, B => B, clk => clk, Qout => Q_out_div, Rout => R_out_div, Dout => D_out_div);
 
-    output_valid <= toutput_valid;
 
-  PROCESS(toutput_valid)
+  PROCESS(Q_out_div, R_out_div, D_out_div, clk)
   BEGIN
     IF toutput_valid = '1' THEN
+       output_valid <= toutput_valid;
       IF divisor_sign = '0' AND dividend_sign = '0' THEN 
          quotient_to_ssd <= Q_out_div;
          remainder_to_ssd <= R_out_div(7 DOWNTO 0);
