@@ -556,12 +556,10 @@ BEGIN
      PORT MAP(Qin => Q_out_reg, Rin => R_out_reg, Din => D_out_reg, B => B, clk => clk, Qout => Q_out_div, Rout => R_out_div, Dout => D_out_div);
 
 
-  PROCESS(D_out_div, clk)
+  PROCESS(D_out_div)
   BEGIN
     IF (unsigned(D_out_div) < unsigned(B)) THEN
-        IF rising_edge(clk) THEN
-            toutput_valid <= '1';
-        END IF;    
+	toutput_valid <= '1'; 
     ELSE
       Q_in_reg <= Q_out_div;
       D_in_reg <= D_out_div;
