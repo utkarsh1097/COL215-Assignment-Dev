@@ -179,275 +179,293 @@ END handler;
 
 ARCHITECTURE handler_logic OF handler IS
   signal UpReqUp, UpReqDown, DownReqUp, DownReqDown: std_logic_vector(3 DOWNTO 0); --dir_status got nothing to do with this classification!!
-  signal tlift_req1, tlift_req2: std_logic_vector(3 DOWNTO 0);
+  signal tlift_req1_1, tlift_req1_2, tlift_req1_3, tlift_req2_1, tlift_req2_2, tlift_req2_3: std_logic_vector(3 DOWNTO 0);
   signal set: std_logic;
   signal check_up_request, check_down_request: std_logic_vector(3 DOWNTO 0);
   signal check_floor_status1, check_floor_status2: std_logic_vector(3 DOWNTO 0); --this and the input below define curr status of both lifts
+  signal count: integer;
 BEGIN
 
   PROCESS(clk)
   BEGIN
   IF rising_edge(clk) THEN
-    IF reset <= '1' THEN
+    IF reset = '1' THEN
       set <= '1';
       UpReqUp <= "0000";
       DownReqUp <= "0000";
       UpReqDown <= "0000";
       DownReqDown <= "0000";
-      tlift_req1 <= "0000";
-      tlift_req2 <= "0000";
-      lift_req1 <= "0000";
-      lift_req2 <= "0000";
+      tlift_req1_1 <= "0000";
+      tlift_req1_2 <= "0000";
+      tlift_req1_3 <= "0000";
+      tlift_req2_1 <= "0000";
+      tlift_req2_2 <= "0000";
+      tlift_req2_3 <= "0000";
       check_up_request <= "0000";
       check_down_request <= "0000";
       check_floor_status1 <= "0001";
       check_floor_status2 <= "0001";
+      count <= 0;
     ELSIF set = '1' THEN
-      lift_req1 <= tlift_req1;
-      lift_req2 <= tlift_req2;
+      IF count = 0 THEN
+        count <= count+1;
+        lift_req1 <= tlift_req1_1 OR tlift_req1_2 OR tlift_req1_3;
+        lift_req2 <= tlift_req2_1 OR tlift_req2_2 OR tlift_req2_3;
+        tlift_req1_1 <= "0000";
+        tlift_req1_2 <= "0000";
+        tlift_req1_3 <= "0000";
+        tlift_req2_1 <= "0000";
+        tlift_req2_2 <= "0000";
+        tlift_req2_3 <= "0000";
+      ELSIF count = 1 THEN 
+        count <= count+1;
+        IF check_up_request /= up_request THEN --new request made. Update
+          check_up_request <= up_request;
+          IF (up_request > floor_status1) OR (up_request > floor_status2) THEN -- Case of UpReqUp
+            UpReqUp <= UpReqUp OR up_request;
+          ELSE
+            UpReqDown <= UpReqDown OR up_request;
+          END IF;
+        END IF;
+        IF check_down_request /= down_request THEN --new request made. Update
+          check_down_request <= down_request;
+          IF (down_request <= floor_status1) OR (down_request <= floor_status2) THEN -- Case of DownReqDown
+            DownReqDown <= DownReqDown OR down_request;
+          ELSE
+            DownReqUp <= DownReqUp OR down_request;
+          END IF;
+        END IF;    
+      ELSIF count = 2 THEN
+         count <= count + 1;
+        IF(check_floor_status1 /= floor_status1) THEN --floor of lift 1 changed. 
+          IF(check_floor_status1 > floor_status1) THEN --lift is going down. So, DownReqUp may have changed to UpReqUp resp.
+            IF check_floor_status1 = "0010" THEN --can't be 0001
+              UpReqUp(1) <= UpReqUp(1) OR DownReqUp(1);
+              DownReqUp(1) <= '0';
+            ELSIF check_floor_status1 = "0100" THEN 
+              UpReqUp(2) <= UpReqUp(2) OR DownReqUp(2);
+              DownReqUp(2) <= '0';
+            ELSIF check_floor_status1 = "1000" THEN 
+              UpReqUp(3) <= UpReqUp(3) OR DownReqUp(3); --no sense but let it be
+              DownReqUp(3) <= '0';
+            END IF;
+          ELSE --lift is going up. So, UpReqDown may have changed to DownReqDown resp.
+            IF check_floor_status1 = "0001" THEN
+              DownReqDown(0) <= DownReqDown(0) OR UpReqDown(0); ----no sense but let it be
+              UpReqDown(0) <= '0';
+            ELSIF check_floor_status1 = "0010" THEN 
+              DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1);
+              UpReqDown(1) <= '0';
+            ELSIF check_floor_status1 = "0100" THEN --can't be 1000
+              DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
+              UpReqDown(2) <= '0';
+            END IF;
+          END IF;
+          check_floor_status1 <= floor_status1;
+        ELSIF (check_floor_status2 /= floor_status2) THEN 
+          IF(check_floor_status2 > floor_status2) THEN --lift is going down. So, DownReqUp may have changed to UpReqUp resp.
+            IF check_floor_status2 = "0010" THEN --can't be 0001
+              UpReqUp(1) <= UpReqUp(1) OR DownReqUp(1);
+              DownReqUp(1) <= '0';
+            ELSIF check_floor_status2 = "0100" THEN 
+              UpReqUp(2) <= UpReqUp(2) OR DownReqUp(2);
+              DownReqUp(2) <= '0';
+            ELSIF check_floor_status2 = "1000" THEN 
+              UpReqUp(3) <= UpReqUp(3) OR DownReqUp(3); --no sense but let it be
+              DownReqUp(3) <= '0';
+            END IF;
+          ELSE --lift is going up. So, UpReqDown may have changed to DownReqDown resp.
+            IF check_floor_status2 = "0001" THEN --Note: Same floor request is DownReqUp/DownReqDown
+              DownReqDown(0) <= DownReqDown(0) OR UpReqDown(0); ----no sense but let it be
+              DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1); ----no sense but let it be
+              UpReqDown(1 DOWNTO 0) <= "00";
+            ELSIF check_floor_status2 = "0010" THEN 
+              DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1);
+              DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
+              UpReqDown(2 DOWNTO 1) <= "00";
+            ELSIF check_floor_status2 = "0100" THEN --can't be 1000
+              DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
+              DownReqDown(3) <= DownReqDown(3) OR UpReqDown(3);
+              UpReqDown(3 DOWNTO 2) <= "00";
+            END IF;
+          END IF;
+          check_floor_status2 <= floor_status2;
+        END IF;
+      ELSIF count = 3 THEN
+         count <= 0;
       --here write assignment statements of uprequp and downreqdown
-      IF(dir_status1 = "01" OR dir_status2 = "01") THEN
-        IF dir_status1 = "01" THEN  
-          IF floor_status1 = "0001" THEN  --assign same floor requests too
-            tlift_req1(3 DOWNTO 0) <= tlift_req1(3 DOWNTO 0) OR UpReqUp(3 DOWNTO 0);
-            UpReqUp(3 DOWNTO 0) <= "0000";
-          ELSIF floor_status1 = "0010" THEN
-            tlift_req1(3 DOWNTO 1) <= tlift_req1(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
-            UpReqUp(3 DOWNTO 1) <= "000";
-          ELSIF floor_status1 = "0100" THEN
-            tlift_req1(3 DOWNTO 2) <= tlift_req1(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
-            UpReqUp(3 DOWNTO 2) <= "00";
-          END IF;
-        ELSIF dir_status2 = "01" THEN
-          IF floor_status2 = "0001" THEN  --assign same floor requests too
-            tlift_req2(3 DOWNTO 0) <= tlift_req2(3 DOWNTO 0) OR UpReqUp(3 DOWNTO 0);
-            UpReqUp(3 DOWNTO 0) <= "0000";
-          ELSIF floor_status2 = "0010" THEN
-            tlift_req2(3 DOWNTO 1) <= tlift_req2(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
-            UpReqUp(3 DOWNTO 1) <= "000";
-          ELSIF floor_status2 = "0100" THEN
-            tlift_req2(3 DOWNTO 2) <= tlift_req2(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
-            UpReqUp(3 DOWNTO 2) <= "00";
-          END IF;
-        END IF;
-      END IF;
-      IF (dir_status1 = "10" OR dir_status2 = "10") THEN
-        IF dir_status1 = "10" THEN  
-          IF floor_status1 = "0010" THEN
-            tlift_req1(1 DOWNTO 0) <= tlift_req1(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
-            DownReqDown(1 DOWNTO 0) <= "00";
-          ELSIF floor_status1 = "0100" THEN
-            tlift_req1(2 DOWNTO 0) <= tlift_req1(2 DOWNTO 0) OR DownReqDown(2 DOWNTO 0);
-            DownReqDown(2 DOWNTO 0) <= "000";
-          ELSIF floor_status1 = "1000" THEN
-            tlift_req1(3 DOWNTO 0) <= tlift_req1(3 DOWNTO 0) OR DownReqDown(3 DOWNTO 0);
-            DownReqDown(3 DOWNTO 0) <= "0000";
-          END IF;
-        ELSIF dir_status2 = "10" THEN
-          IF floor_status2 = "0010" THEN
-            tlift_req2(1 DOWNTO 0) <= tlift_req2(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
-            DownReqDown(1 DOWNTO 0) <= "00";
-          ELSIF floor_status2= "0100" THEN
-            tlift_req2(2 DOWNTO 0) <= tlift_req2(2 DOWNTO 0) OR DownReqDown(2 DOWNTO 0);
-            DownReqDown(2 DOWNTO 0) <= "000";
-          ELSIF floor_status2 = "1000" THEN
-            tlift_req2(3 DOWNTO 0) <= tlift_req2(3 DOWNTO 0) OR DownReqDown(3 DOWNTO 0);
-            DownReqDown(3 DOWNTO 0) <= "0000";
-          END IF;
-        END IF;
-      END IF;
-      IF (dir_status1 = "00" OR dir_status2 = "00") THEN --little tricky
-        IF dir_status1 = "00" THEN
-          IF floor_status1 = "0001" THEN
-            IF UpReqUp /= "0000" THEN
-              tlift_req1 <= tlift_req1 OR UpReqUp;
-              UpReqUp <= "0000";
-            ELSIF UpReqDown /= "0000" THEN
-              tlift_req1 <= tlift_req1 OR UpReqDown;
-              UpReqDown <= "0000";
-            ELSIF DownReqUp /= "0000" THEN
-              tlift_req1 <= tlift_req1 OR DownReqUp;
-              DownReqUp <= "0000";
-            ELSIF DownReqDown <= "0000" THEN
-              tlift_req1 <= tlift_req1 OR DownReqDown;
-              DownReqDown <= "0000";
-            END IF;
-          ELSIF floor_status1 = "0010" THEN 
-            IF UpReqUp(3 DOWNTO 1) /= "000" THEN
-              tlift_req1(3 DOWNTO 1) <= tlift_req1(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
+        IF(dir_status1 = "01" OR dir_status2 = "01") THEN
+          IF dir_status1 = "01" THEN  
+            IF floor_status1 = "0001" THEN  --assign same floor requests too
+              tlift_req1_1(3 DOWNTO 0) <= tlift_req1_1(3 DOWNTO 0) OR UpReqUp(3 DOWNTO 0);
+              UpReqUp(3 DOWNTO 0) <= "0000";
+            ELSIF floor_status1 = "0010" THEN
+              tlift_req1_1(3 DOWNTO 1) <= tlift_req1_1(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
               UpReqUp(3 DOWNTO 1) <= "000";
-            ELSIF UpReqDown(3 DOWNTO 1) /= "000" THEN
-              tlift_req1(3 DOWNTO 1) <= tlift_req1(3 DOWNTO 1) OR UpReqDown(3 DOWNTO 1);
-              UpReqDown(3 DOWNTO 1) <= "000";
-            ELSIF DownReqUp(3 DOWNTO 1) /= "000" THEN
-              tlift_req1(3 DOWNTO 1) <= tlift_req1(3 DOWNTO 1) OR DownReqUp(3 DOWNTO 1);
-              DownReqUp(3 DOWNTO 1) <= "000";
-            ELSIF DownReqDown(3 DOWNTO 1) <= "000" THEN
-              tlift_req1(3 DOWNTO 1) <= tlift_req1(3 DOWNTO 1) OR DownReqDown(3 DOWNTO 1);
-              DownReqDown(3 DOWNTO 1) <= "000";
-            END IF;
-          ELSIF floor_status1 = "0100" THEN
-            IF UpReqUp(3 DOWNTO 2) /= "00" THEN
-              tlift_req1(3 DOWNTO 2) <= tlift_req1(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
+            ELSIF floor_status1 = "0100" THEN
+              tlift_req1_1(3 DOWNTO 2) <= tlift_req1_1(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
               UpReqUp(3 DOWNTO 2) <= "00";
-            ELSIF UpReqDown(3 DOWNTO 2) /= "00" THEN
-              tlift_req1(3 DOWNTO 2) <= tlift_req1(3 DOWNTO 2) OR UpReqDown(3 DOWNTO 2);
-              UpReqDown(3 DOWNTO 2) <= "00";
-            ELSIF DownReqUp(3 DOWNTO 2) /= "00" THEN
-              tlift_req1(3 DOWNTO 2) <= tlift_req1(3 DOWNTO 2) OR DownReqUp(3 DOWNTO 2);
-              DownReqUp(3 DOWNTO 2) <= "00";
-            ELSIF DownReqDown(3 DOWNTO 2) <= "00" THEN
-              tlift_req1(3 DOWNTO 2) <= tlift_req1(3 DOWNTO 2) OR DownReqDown(3 DOWNTO 2);
-              DownReqDown(3 DOWNTO 2) <= "00";
             END IF;
-          ELSIF floor_status1 = "1000" THEN
-            IF UpReqUp(3 DOWNTO 3) /= "0" THEN
-              tlift_req1(3 DOWNTO 3) <= tlift_req1(3 DOWNTO 3) OR UpReqUp(3 DOWNTO 3);
-              UpReqUp(3 DOWNTO 3) <= "0";
-            ELSIF UpReqDown(3 DOWNTO 3) /= "0" THEN
-              tlift_req1(3 DOWNTO 3) <= tlift_req1(3 DOWNTO 3) OR UpReqDown(3 DOWNTO 3);
-              UpReqDown(3 DOWNTO 3) <= "0";
-            ELSIF DownReqUp(3 DOWNTO 3) /= "0" THEN
-              tlift_req1(3 DOWNTO 3) <= tlift_req1(3 DOWNTO 3) OR DownReqUp(3 DOWNTO 3);
-              DownReqUp(3 DOWNTO 3) <= "0";
-            ELSIF DownReqDown(3 DOWNTO 3) <= "0" THEN
-              tlift_req1(3 DOWNTO 3) <= tlift_req1(3 DOWNTO 3) OR DownReqDown(3 DOWNTO 3);
-              DownReqDown(3 DOWNTO 3) <= "0";
-            END IF;
-          END IF;
-        ELSIF dir_status2 = "00" THEN
-          IF floor_status2 = "0001" THEN
-            IF UpReqUp /= "0000" THEN
-              tlift_req2 <= tlift_req2 OR UpReqUp;
-              UpReqUp <= "0000";
-            ELSIF UpReqDown /= "0000" THEN
-              tlift_req2 <= tlift_req2 OR UpReqDown;
-              UpReqDown <= "0000";
-            ELSIF DownReqUp /= "0000" THEN
-              tlift_req2 <= tlift_req2 OR DownReqUp;
-              DownReqUp <= "0000";
-            ELSIF DownReqDown <= "0000" THEN
-              tlift_req2 <= tlift_req2 OR DownReqDown;
-              DownReqDown <= "0000";
-            END IF;
-          ELSIF floor_status2 = "0010" THEN 
-            IF UpReqUp(3 DOWNTO 1) /= "000" THEN
-              tlift_req2(3 DOWNTO 1) <= tlift_req2(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
+          ELSIF dir_status2 = "01" THEN
+            IF floor_status2 = "0001" THEN  --assign same floor requests too
+              tlift_req2_1(3 DOWNTO 0) <= tlift_req2_1(3 DOWNTO 0) OR UpReqUp(3 DOWNTO 0);
+              UpReqUp(3 DOWNTO 0) <= "0000";
+            ELSIF floor_status2 = "0010" THEN
+              tlift_req2_1(3 DOWNTO 1) <= tlift_req2_1(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
               UpReqUp(3 DOWNTO 1) <= "000";
-            ELSIF UpReqDown(3 DOWNTO 1) /= "000" THEN
-              tlift_req2(3 DOWNTO 1) <= tlift_req2(3 DOWNTO 1) OR UpReqDown(3 DOWNTO 1);
-              UpReqDown(3 DOWNTO 1) <= "000";
-            ELSIF DownReqUp(3 DOWNTO 1) /= "000" THEN
-              tlift_req2(3 DOWNTO 1) <= tlift_req2(3 DOWNTO 1) OR DownReqUp(3 DOWNTO 1);
-              DownReqUp(3 DOWNTO 1) <= "000";
-            ELSIF DownReqDown(3 DOWNTO 1) <= "000" THEN
-              tlift_req2(3 DOWNTO 1) <= tlift_req2(3 DOWNTO 1) OR DownReqDown(3 DOWNTO 1);
-              DownReqDown(3 DOWNTO 1) <= "000";
-            END IF;
-          ELSIF floor_status2 = "0100" THEN
-            IF UpReqUp(3 DOWNTO 2) /= "00" THEN
-              tlift_req2(3 DOWNTO 2) <= tlift_req2(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
+            ELSIF floor_status2 = "0100" THEN
+              tlift_req2_1(3 DOWNTO 2) <= tlift_req2_1(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
               UpReqUp(3 DOWNTO 2) <= "00";
-            ELSIF UpReqDown(3 DOWNTO 2) /= "00" THEN
-              tlift_req2(3 DOWNTO 2) <= tlift_req2(3 DOWNTO 2) OR UpReqDown(3 DOWNTO 2);
-              UpReqDown(3 DOWNTO 2) <= "00";
-            ELSIF DownReqUp(3 DOWNTO 2) /= "00" THEN
-              tlift_req2(3 DOWNTO 2) <= tlift_req2(3 DOWNTO 2) OR DownReqUp(3 DOWNTO 2);
-              DownReqUp(3 DOWNTO 2) <= "00";
-            ELSIF DownReqDown(3 DOWNTO 2) <= "00" THEN
-              tlift_req2(3 DOWNTO 2) <= tlift_req2(3 DOWNTO 2) OR DownReqDown(3 DOWNTO 2);
-              DownReqDown(3 DOWNTO 2) <= "00";
-            END IF;
-          ELSIF floor_status2 = "1000" THEN
-            IF UpReqUp(3 DOWNTO 3) /= "0" THEN
-              tlift_req2(3 DOWNTO 3) <= tlift_req2(3 DOWNTO 3) OR UpReqUp(3 DOWNTO 3);
-              UpReqUp(3 DOWNTO 3) <= "0";
-            ELSIF UpReqDown(3 DOWNTO 3) /= "0" THEN
-              tlift_req2(3 DOWNTO 3) <= tlift_req2(3 DOWNTO 3) OR  UpReqDown(3 DOWNTO 3);
-              UpReqDown(3 DOWNTO 3) <= "0";
-            ELSIF DownReqUp(3 DOWNTO 3) /= "0" THEN
-              tlift_req2(3 DOWNTO 3) <= tlift_req2(3 DOWNTO 3) OR  DownReqUp(3 DOWNTO 3);
-              DownReqUp(3 DOWNTO 3) <= "0";
-            ELSIF DownReqDown(3 DOWNTO 3) <= "0" THEN
-              tlift_req2(3 DOWNTO 3) <= tlift_req2(3 DOWNTO 3) OR  DownReqDown(3 DOWNTO 3);
-              DownReqDown(3 DOWNTO 3) <= "0";
             END IF;
           END IF;
         END IF;
-      END IF;
-      --assignment over
-      IF check_up_request /= up_request THEN --new request made. Update
-        check_up_request <= up_request;
-        IF (up_request > floor_status1) OR (up_request > floor_status2) THEN -- Case of UpReqUp
-          UpReqUp <= UpReqUp OR up_request;
-        ELSE
-          UpReqDown <= UpReqDown OR up_request;
-        END IF;
-      END IF;
-      IF check_down_request /= down_request THEN --new request made. Update
-        check_down_request <= down_request;
-        IF (down_request <= floor_status1) OR (down_request <= floor_status2) THEN -- Case of DownReqDown
-          DownReqDown <= DownReqDown OR down_request;
-        ELSE
-          DownReqDown <= DownReqDown OR down_request;
-        END IF;
-      END IF;    
-      IF(check_floor_status1 /= floor_status1) THEN --floor of lift 1 changed. 
-        IF(check_floor_status1 > floor_status1) THEN --lift is going down. So, DownReqUp may have changed to UpReqUp resp.
-          IF check_floor_status1 = "0010" THEN --can't be 0001
-            UpReqUp(1) <= UpReqUp(1) OR DownReqUp(1);
-            DownReqUp(1) <= '0';
-          ELSIF check_floor_status1 = "0100" THEN 
-            UpReqUp(2) <= UpReqUp(2) OR DownReqUp(2);
-            DownReqUp(2) <= '0';
-          ELSIF check_floor_status1 = "1000" THEN 
-            UpReqUp(3) <= UpReqUp(3) OR DownReqUp(3); --no sense but let it be
-            DownReqUp(3) <= '0';
-          END IF;
-        ELSE --lift is going up. So, UpReqDown may have changed to DownReqDown resp.
-          IF check_floor_status1 = "0001" THEN
-            DownReqDown(0) <= DownReqDown(0) OR UpReqDown(0); ----no sense but let it be
-            UpReqDown(0) <= '0';
-          ELSIF check_floor_status1 = "0010" THEN 
-            DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1);
-            UpReqDown(1) <= '0';
-          ELSIF check_floor_status1 = "0100" THEN --can't be 1000
-            DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
-            UpReqDown(2) <= '0';
+        IF (dir_status1 = "10" OR dir_status2 = "10") THEN
+          IF dir_status1 = "10" THEN  
+            IF floor_status1 = "0010" THEN
+              tlift_req1_2(1 DOWNTO 0) <= tlift_req1_2(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
+              DownReqDown(1 DOWNTO 0) <= "00";
+            ELSIF floor_status1 = "0100" THEN
+              tlift_req1_2(2 DOWNTO 0) <= tlift_req1_2(2 DOWNTO 0) OR DownReqDown(2 DOWNTO 0);
+              DownReqDown(2 DOWNTO 0) <= "000";
+            ELSIF floor_status1 = "1000" THEN
+              tlift_req1_2(3 DOWNTO 0) <= tlift_req1_2(3 DOWNTO 0) OR DownReqDown(3 DOWNTO 0);
+              DownReqDown(3 DOWNTO 0) <= "0000";
+            END IF;
+          ELSIF dir_status2 = "10" THEN
+            IF floor_status2 = "0010" THEN
+              tlift_req2_2(1 DOWNTO 0) <= tlift_req2_2(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
+              DownReqDown(1 DOWNTO 0) <= "00";
+            ELSIF floor_status2= "0100" THEN
+              tlift_req2_2(2 DOWNTO 0) <= tlift_req2_2(2 DOWNTO 0) OR DownReqDown(2 DOWNTO 0);
+              DownReqDown(2 DOWNTO 0) <= "000";
+            ELSIF floor_status2 = "1000" THEN
+              tlift_req2_2(3 DOWNTO 0) <= tlift_req2_2(3 DOWNTO 0) OR DownReqDown(3 DOWNTO 0);
+              DownReqDown(3 DOWNTO 0) <= "0000";
+            END IF;
           END IF;
         END IF;
-        check_floor_status1 <= floor_status1;
-      ELSIF (check_floor_status2 /= floor_status2) THEN 
-        IF(check_floor_status2 > floor_status2) THEN --lift is going down. So, DownReqUp may have changed to UpReqUp resp.
-          IF check_floor_status2 = "0010" THEN --can't be 0001
-            UpReqUp(1) <= UpReqUp(1) OR DownReqUp(1);
-            DownReqUp(1) <= '0';
-          ELSIF check_floor_status2 = "0100" THEN 
-            UpReqUp(2) <= UpReqUp(2) OR DownReqUp(2);
-            DownReqUp(2) <= '0';
-          ELSIF check_floor_status2 = "1000" THEN 
-            UpReqUp(3) <= UpReqUp(3) OR DownReqUp(3); --no sense but let it be
-            DownReqUp(3) <= '0';
-          END IF;
-        ELSE --lift is going up. So, UpReqDown may have changed to DownReqDown resp.
-          IF check_floor_status2 = "0001" THEN --Note: Same floor request is DownReqUp/DownReqDown
-            DownReqDown(0) <= DownReqDown(0) OR UpReqDown(0); ----no sense but let it be
-            DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1); ----no sense but let it be
-            UpReqDown(1 DOWNTO 0) <= "00";
-          ELSIF check_floor_status2 = "0010" THEN 
-            DownReqDown(1) <= DownReqDown(1) OR UpReqDown(1);
-            DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
-            UpReqDown(2 DOWNTO 1) <= "00";
-          ELSIF check_floor_status2 = "0100" THEN --can't be 1000
-            DownReqDown(2) <= DownReqDown(2) OR UpReqDown(2);
-            DownReqDown(3) <= DownReqDown(3) OR UpReqDown(3);
-            UpReqDown(3 DOWNTO 2) <= "00";
+        IF (dir_status1 = "00" OR dir_status2 = "00") THEN --little tricky
+          IF dir_status1 = "00" THEN
+            IF floor_status1 = "0001" THEN
+              IF UpReqUp /= "0000" THEN
+                tlift_req1_3 <= tlift_req1_3 OR UpReqUp;
+                UpReqUp <= "0000";
+              ELSIF UpReqDown /= "0000" THEN
+                tlift_req1_3 <= tlift_req1_3 OR UpReqDown;
+                UpReqDown <= "0000";
+              ELSIF DownReqUp /= "0000" THEN
+                tlift_req1_3 <= tlift_req1_3 OR DownReqUp;
+                DownReqUp <= "0000";
+              ELSIF DownReqDown /= "0000" THEN
+                tlift_req1_3 <= tlift_req1_3 OR DownReqDown;
+                DownReqDown <= "0000";
+              END IF;
+            ELSIF floor_status1 = "0010" THEN 
+              IF UpReqUp(3 DOWNTO 1) /= "000" THEN
+                tlift_req1_3(3 DOWNTO 1) <= tlift_req1_3(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
+                UpReqUp(3 DOWNTO 1) <= "000";
+              ELSIF UpReqDown(3 DOWNTO 1) /= "000" THEN
+                tlift_req1_3(3 DOWNTO 1) <= tlift_req1_3(3 DOWNTO 1) OR UpReqDown(3 DOWNTO 1);
+                UpReqDown(3 DOWNTO 1) <= "000";
+              ELSIF DownReqUp(0 DOWNTO 0) /= "0" THEN
+                tlift_req1_3(0 DOWNTO 0) <= tlift_req1_3(0 DOWNTO 0) OR DownReqUp(0 DOWNTO 0);
+                DownReqUp(0 DOWNTO 0) <= "0";
+              ELSIF DownReqDown(0 DOWNTO 0) /= "0" THEN
+                tlift_req1_3(0 DOWNTO 0) <= tlift_req1_3(0 DOWNTO 0) OR DownReqDown(0 DOWNTO 0);
+                DownReqDown(0 DOWNTO 0) <= "0";
+              END IF;
+            ELSIF floor_status1 = "0100" THEN
+              IF UpReqUp(3 DOWNTO 2) /= "00" THEN
+                tlift_req1_3(3 DOWNTO 2) <= tlift_req1_3(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
+                UpReqUp(3 DOWNTO 2) <= "00";
+              ELSIF UpReqDown(3 DOWNTO 2) /= "00" THEN
+                tlift_req1_3(3 DOWNTO 2) <= tlift_req1_3(3 DOWNTO 2) OR UpReqDown(3 DOWNTO 2);
+                UpReqDown(3 DOWNTO 2) <= "00";
+              ELSIF DownReqUp(1 DOWNTO 0) /= "00" THEN
+                tlift_req1_3(1 DOWNTO 0) <= tlift_req1_3(1 DOWNTO 0) OR DownReqUp(1 DOWNTO 0);
+                DownReqUp(1 DOWNTO 0) <= "00";
+              ELSIF DownReqDown(1 DOWNTO 0) /= "00" THEN
+                tlift_req1_3(1 DOWNTO 0) <= tlift_req1_3(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
+                DownReqDown(1 DOWNTO 0) <= "00";
+              END IF;
+            ELSIF floor_status1 = "1000" THEN
+              IF UpReqUp(3 DOWNTO 3) /= "0" THEN
+                tlift_req1_3(3 DOWNTO 3) <= tlift_req1_3(3 DOWNTO 3) OR UpReqUp(3 DOWNTO 3);
+                UpReqUp(3 DOWNTO 3) <= "0";
+              ELSIF UpReqDown(3 DOWNTO 3) /= "0" THEN
+                tlift_req1_3(3 DOWNTO 3) <= tlift_req1_3(3 DOWNTO 3) OR UpReqDown(3 DOWNTO 3);
+                UpReqDown(3 DOWNTO 3) <= "0";
+              ELSIF DownReqUp(2 DOWNTO 0) /= "000" THEN
+                tlift_req1_3(2 DOWNTO 0) <= tlift_req1_3(2 DOWNTO 0) OR DownReqUp(2 DOWNTO 0);
+                DownReqUp(2 DOWNTO 0) <= "000";
+              ELSIF DownReqDown(2 DOWNTO 0) /= "000" THEN
+                tlift_req1_3(2 DOWNTO 0) <= tlift_req1_3(2 DOWNTO 0) OR DownReqDown(2 DOWNTO 0);
+                DownReqDown(2 DOWNTO 0) <= "000";
+              END IF;
+            END IF;
+          ELSIF dir_status2 = "00" THEN
+            IF floor_status2 = "0001" THEN
+              IF UpReqUp /= "0000" THEN
+                tlift_req2_3 <= tlift_req2_3 OR UpReqUp;
+                UpReqUp <= "0000";
+              ELSIF UpReqDown /= "0000" THEN
+                tlift_req2_3 <= tlift_req2_3 OR UpReqDown;
+                UpReqDown <= "0000";
+              ELSIF DownReqUp /= "0000" THEN
+                tlift_req2_3 <= tlift_req2_3 OR DownReqUp;
+                DownReqUp <= "0000";
+              ELSIF DownReqDown /= "0000" THEN
+                tlift_req2_3 <= tlift_req2_3 OR DownReqDown;
+                DownReqDown <= "0000";
+              END IF;
+            ELSIF floor_status2 = "0010" THEN 
+              IF UpReqUp(3 DOWNTO 1) /= "000" THEN
+                tlift_req2_3(3 DOWNTO 1) <= tlift_req2_3(3 DOWNTO 1) OR UpReqUp(3 DOWNTO 1);
+                UpReqUp(3 DOWNTO 1) <= "000";
+              ELSIF UpReqDown(3 DOWNTO 1) /= "000" THEN
+                tlift_req2_3(3 DOWNTO 1) <= tlift_req2_3(3 DOWNTO 1) OR UpReqDown(3 DOWNTO 1);
+                UpReqDown(3 DOWNTO 1) <= "000";
+              ELSIF DownReqUp(0 DOWNTO 0) /= "0" THEN
+                tlift_req2_3(0 DOWNTO 0) <= tlift_req2_3(0 DOWNTO 0) OR DownReqUp(0 DOWNTO 0);
+                DownReqUp(0 DOWNTO 0) <= "0";
+              ELSIF DownReqDown(0 DOWNTO 0) /= "0" THEN
+                tlift_req2_3(0 DOWNTO 0) <= tlift_req2_3(0 DOWNTO 0) OR DownReqDown(0 DOWNTO 0);
+                DownReqDown(0 DOWNTO 0) <= "0";
+              END IF;
+            ELSIF floor_status2 = "0100" THEN
+              IF UpReqUp(3 DOWNTO 2) /= "00" THEN
+                tlift_req2_3(3 DOWNTO 2) <= tlift_req2_3(3 DOWNTO 2) OR UpReqUp(3 DOWNTO 2);
+                UpReqUp(3 DOWNTO 2) <= "00";
+              ELSIF UpReqDown(3 DOWNTO 2) /= "00" THEN
+                tlift_req2_3(3 DOWNTO 2) <= tlift_req2_3(3 DOWNTO 2) OR UpReqDown(3 DOWNTO 2);
+                UpReqDown(3 DOWNTO 2) <= "00";
+              ELSIF DownReqUp(1 DOWNTO 0) /= "00" THEN
+                tlift_req2_3(1 DOWNTO 0) <= tlift_req2_3(1 DOWNTO 0) OR DownReqUp(1 DOWNTO 0);
+                DownReqUp(1 DOWNTO 0) <= "00";
+              ELSIF DownReqDown(1 DOWNTO 0) /= "00" THEN
+                tlift_req2_3(3 DOWNTO 2) <= tlift_req2_3(1 DOWNTO 0) OR DownReqDown(1 DOWNTO 0);
+                DownReqDown(1 DOWNTO 0) <= "00";
+              END IF;
+            ELSIF floor_status2 = "1000" THEN
+              IF UpReqUp(3 DOWNTO 3) /= "0" THEN
+                tlift_req2_3(3 DOWNTO 3) <= tlift_req2_3(3 DOWNTO 3) OR UpReqUp(3 DOWNTO 3);
+                UpReqUp(3 DOWNTO 3) <= "0";
+              ELSIF UpReqDown(3 DOWNTO 3) /= "0" THEN
+                tlift_req2_3(3 DOWNTO 3) <= tlift_req2_3(3 DOWNTO 3) OR  UpReqDown(3 DOWNTO 3);
+                UpReqDown(3 DOWNTO 3) <= "0";
+              ELSIF DownReqUp(2 DOWNTO 0) /= "000" THEN
+                tlift_req2_3(2 DOWNTO 0) <= tlift_req2_3(2 DOWNTO 0) OR  DownReqUp(2 DOWNTO 0);
+                DownReqUp(2 DOWNTO 0) <= "000";
+              ELSIF DownReqDown(2 DOWNTO 0) /= "000" THEN
+                tlift_req2_3(2 DOWNTO 0) <= tlift_req2_3(2 DOWNTO 0) OR  DownReqDown(2 DOWNTO 0);
+                DownReqDown(2 DOWNTO 0) <= "000";
+              END IF;
+            END IF;
           END IF;
         END IF;
-        check_floor_status2 <= floor_status2;
-      END IF;
+      END IF;      --assignment over
     END IF;
-    END IF;
+   END IF;
   END PROCESS;
 END ARCHITECTURE handler_logic;
 
@@ -788,28 +806,25 @@ ARCHITECTURE lab8_logic OF lab8_elevator_control IS
   signal door_stat1, door_stat2: std_logic;
 BEGIN
   
-  PROCESS(up_request, down_request)
-  BEGIN
-    up_request_indicator <= up_request;
-    down_request_indicator <= down_request;
-  END PROCESS;
-
   C: ENTITY WORK.slowClock(slowClock_arc)
      PORT MAP(clk_100Mhz => clk, 
               clk_2KHz => slowclk);
+              
+              
+  
+    H: ENTITY WORK.handler(handler_logic)
+       PORT MAP(up_request => up_request, 
+                down_request => down_request, 
+                clk => slowclk, 
+                reset => reset, 
+                floor_status1 => cur_floor1, 
+                floor_status2 => cur_floor2, 
+                dir_status1 => dir_status1, 
+                dir_status2 => dir_status2, 
+                lift_req1 => handler_req1, 
+                lift_req2 => handler_req2);
 
-  H: ENTITY WORK.handler(handler_logic)
-     PORT MAP(up_request => up_request, 
-              down_request => down_request, 
-              clk => slowclk, 
-              reset => reset, 
-              floor_status1 => cur_floor1, 
-              floor_status2 => cur_floor2, 
-              dir_status1 => dir_status1, 
-              dir_status2 => dir_status2, 
-              lift_req1 => handler_req1, 
-              lift_req2 => handler_req2);
-
+              
   L1: ENTITY WORK.controller(controller_logic)
       PORT MAP(reset => reset,
                handler_req => handler_req1,
@@ -820,23 +835,26 @@ BEGIN
                door_status => door_stat1,
                floor_status => cur_floor1,
                dir_status => dir_status1);
+              
+    L2: ENTITY WORK.controller(controller_logic)
+        PORT MAP(reset => reset,
+                 handler_req => handler_req2,
+                 lift_req => lift2_floor,
+                 clk => slowclk,
+                 door_open_req => door_open(1),
+                 door_close_req => door_closed(1),
+                 door_status => door_stat2,
+                 floor_status => cur_floor2,
+                 dir_status => dir_status2);
+                 
+     up_request_indicator <= up_request;
+     down_request_indicator <= down_request;                 
+ 
+     lift1_floor_indicator <= cur_floor1;
+     lift2_floor_indicator <= cur_floor2;
 
-  L2: ENTITY WORK.controller(controller_logic)
-      PORT MAP(reset => reset,
-               handler_req => handler_req2,
-               lift_req => lift2_floor,
-               clk => slowclk,
-               door_open_req => door_open(1),
-               door_close_req => door_closed(1),
-               door_status => door_stat2,
-               floor_status => cur_floor2,
-               dir_status => dir_status2);
 
-  PROCESS(cur_floor1, cur_floor2)
-  BEGIN
-    lift1_floor_indicator <= cur_floor1;
-    lift2_floor_indicator <= cur_floor2;
-  END PROCESS;
+  
   ssd: ENTITY WORK.ssd_final(ssd_final_arc)
        PORT MAP(clk => slowclk,
                 floor1 => cur_floor1,
