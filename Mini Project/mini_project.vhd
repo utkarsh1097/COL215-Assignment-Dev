@@ -425,8 +425,8 @@ BEGIN
           END IF;
         END IF;
         prev_D <= D;
-        counter_delay_bit <= std_logic_vector(to_unsigned(counter_delay, 4));
-        door_delay_bit <= std_logic_vector(to_unsigned(door_delay, 4));
+        counter_delay_bit <= std_logic_vector(to_unsigned((counter_delay)/763, 4));
+        door_delay_bit <= std_logic_vector(to_unsigned((counter_delay)/763, 4));
         light <= templight;
         invalid <= tempinvalid;
       END IF;  
